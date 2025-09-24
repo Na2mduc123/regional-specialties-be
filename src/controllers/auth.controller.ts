@@ -34,6 +34,15 @@ export const register = async (req: Request, res: Response) => {
         .json({ message: "Vui lòng nhập đầy đủ thông tin" });
     }
 
+    // Kiểm tra username hoặc email đã tồn tại
+    const [existing] = await db.query(
+      "SELECT id FROM users WHERE username = ? OR email = ?",
+      [username, email]
+    );
+    if ((existing as any[]).length > 0) {
+      return res.status(400).json({ message: "Tài khoản đã tồn tại" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = await generateId();
 
@@ -84,3 +93,18 @@ export const login = async (req: Request, res: Response) => {
       .json({ message: "Lỗi khi đăng nhập", error: error.message });
   }
 };
+
+// Đăng xuất
+export const logout = async (_req: Request, res: Response) => {
+  try {
+    // Với JWT, chỉ cần client xoá token, server có thể gửi message xác nhận
+    res.json({ message: "Đăng xuất thành công" });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi đăng xuất", error: error.message });
+  }
+};
+
+// ở đăng ký và đăng nhập thì chỉ cần req vì nó được dùng ở đoạn req.body
+// ở đăng xuất thì nó không hề được dùng nên phải thay bằng _req để bỏ qua tránh việc xảy ra lỗi 404 not found

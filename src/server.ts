@@ -18,5 +18,4 @@ testConnection();
 
 app.listen(PORT, () => {
   console.log(`Server đang chạy tại http://localhost:${PORT}`);
-  console.log(`Swagger docs tại http://localhost:${PORT}/api-docs`);
 });
