@@ -23,37 +23,191 @@ const generateId = async (): Promise<string> => {
   return id;
 };
 
+// Lấy thông tin profile
+export const getProfile = async (req: any, res: Response) => {
+  try {
+    const userId = String(req.user?.id); // ép về string
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Không tìm thấy token hoặc userId" });
+    }
+
+    const [rows] = await db.query(
+      `SELECT 
+         u.id,
+         u.fullname,
+         u.username,
+         u.email,
+         u.role,
+         u.avatar,
+         u.created_at,
+         u.updated_at,
+         k.MaKH,
+         k.HoTen,
+         k.SoDienThoai,
+         k.DiaChi,
+         k.NgayDangKy
+       FROM users u
+       LEFT JOIN KhachHang k ON u.id = k.user_id 
+       WHERE u.id = ?`,
+      [userId]
+    ); // Sử dụng 'LEFT JOIN' thay vì JOIN để hiện những thông tin bảng users có mà bảng 'KhachHang' không có. Nếu dùng mỗi JOIN thì nó sẽ hiện chưa đăng nhập và không hiển thị thông tin tài khoản
+
+    const user = (rows as any[])[0];
+
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy tài khoản" });
+    }
+
+    res.json(user);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy thông tin", error: error.message });
+  }
+};
+
+// Cập nhật thông tin khách hàng (auto INSERT nếu thiếu KhachHang)
+export const updateUser = async (req: Request, res: Response) => {
+  let connection: any = null;
+  try {
+    const userId = req.params.id;
+    const { SoDienThoai, DiaChi } = req.body;
+
+    // Kiểm tra tồn tại users trước (để tránh update ghost user)
+    const [userRows] = await db.query("SELECT 1 FROM users WHERE id = ?", [
+      userId,
+    ]);
+    if ((userRows as any[]).length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy tài khoản người dùng" });
+    }
+
+    // Kiểm tra tồn tại khách hàng
+    const [rows] = await db.query("SELECT 1 FROM KhachHang WHERE user_id = ?", [
+      userId,
+    ]);
+
+    if ((rows as any[]).length === 0) {
+      // Auto INSERT KhachHang nếu thiếu (lấy fullname từ users để fill HoTen)
+      const [userInfo] = await db.query(
+        "SELECT fullname FROM users WHERE id = ?",
+        [userId]
+      );
+      const fullname = (userInfo as any[])[0]?.fullname || "Unknown";
+
+      connection = await db.getConnection(); // Giả sử pool
+      await connection.beginTransaction();
+
+      await connection.query(
+        "INSERT INTO KhachHang (MaKH, HoTen, user_id, NgayDangKy, SoDienThoai, DiaChi) VALUES (?, ?, ?, NOW(), ?, ?)",
+        [userId, fullname, userId, SoDienThoai, DiaChi]
+      );
+
+      await connection.commit();
+      console.log(`Auto tạo KhachHang cho user ${userId}`); // Log để debug
+
+      // Trả success ngay vì đã tạo + update
+      return res.json({
+        message: "Tạo và cập nhật thông tin thành công",
+        data: { user_id: userId, SoDienThoai, DiaChi },
+      });
+    }
+
+    // Release connection nếu không dùng (vì không auto insert)
+    if (connection) {
+      connection.release();
+      connection = null;
+    }
+
+    // Cập nhật thông tin (giữ nguyên)
+    const [result]: any = await db.query(
+      "UPDATE KhachHang SET SoDienThoai = ?, DiaChi = ? WHERE user_id = ?",
+      [SoDienThoai, DiaChi, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ message: "Không có gì thay đổi" });
+    }
+
+    // Lấy lại thông tin khách hàng sau khi update
+    const [updatedUser] = await db.query(
+      "SELECT user_id, SoDienThoai, DiaChi FROM KhachHang WHERE user_id = ?",
+      [userId]
+    );
+
+    res.json({
+      message: "Cập nhật thông tin thành công",
+      data: (updatedUser as any[])[0],
+    });
+  } catch (error: any) {
+    if (connection) {
+      await connection.rollback();
+      connection.release();
+    }
+    console.error(`Lỗi updateUser ${userId}:`, error); // Log chi tiết
+    res.status(500).json({
+      message: "Lỗi khi cập nhật thông tin",
+      error: error.message,
+    });
+  }
+};
+
 // Đăng ký
 export const register = async (req: Request, res: Response) => {
+  let connection: any = null; // Giả sử db là pool
   try {
-    const { username, password, email } = req.body;
+    const { fullname, username, password, email } = req.body;
 
-    if (!username || !password) {
+    if (!fullname || !username || !password || !email) {
       return res
         .status(400)
         .json({ message: "Vui lòng nhập đầy đủ thông tin" });
     }
 
-    // Kiểm tra username hoặc email đã tồn tại
     const [existing] = await db.query(
       "SELECT id FROM users WHERE username = ? OR email = ?",
       [username, email]
     );
     if ((existing as any[]).length > 0) {
-      return res.status(400).json({ message: "Tài khoản đã tồn tại" });
+      return res
+        .status(400)
+        .json({ message: "Tài khoản hoặc email đã tồn tại" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = await generateId();
 
-    await db.query(
-      "INSERT INTO users (id, username, password, email) VALUES (?, ?, ?, ?)",
-      [id, username, hashedPassword, email]
+    // Sử dụng transaction để đảm bảo cả hai INSERT thành công
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    await connection.query(
+      "INSERT INTO users (id, fullname, username, password, email, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+      [id, fullname, username, hashedPassword, email]
     );
+
+    await connection.query(
+      "INSERT INTO KhachHang (MaKH, HoTen, user_id, NgayDangKy) VALUES (?, ?, ?, NOW())",
+      [id, fullname, id]
+    );
+
+    await connection.commit();
 
     res.status(201).json({ message: "Đăng ký thành công", userId: id });
   } catch (error: any) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error("Lỗi register:", error); // Log để debug
     res.status(500).json({ message: "Lỗi khi đăng ký", error: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -81,12 +235,23 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: String(user.id), username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    res.json({ message: "Đăng nhập thành công", token });
+    res.json({
+      message: "Đăng nhập thành công",
+      token,
+      user: {
+        id: user.id,
+        fullname: user.fullname,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+    });
   } catch (error: any) {
     res
       .status(500)
@@ -97,7 +262,6 @@ export const login = async (req: Request, res: Response) => {
 // Đăng xuất
 export const logout = async (_req: Request, res: Response) => {
   try {
-    // Với JWT, chỉ cần client xoá token, server có thể gửi message xác nhận
     res.json({ message: "Đăng xuất thành công" });
   } catch (error: any) {
     res

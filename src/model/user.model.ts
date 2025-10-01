@@ -1,5 +1,6 @@
 export interface User {
   id: string; // 5 ký tự số
+  fullname: string;
   username: string;
   password: string;
   email?: string;

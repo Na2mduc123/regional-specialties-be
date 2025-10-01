@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.router";
@@ -7,17 +8,50 @@ import { testConnection } from "./database";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes); 
+// Cấu hình CORS cho các frontend port khác nhau
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5003",
+      "http://localhost:5002",
+      "http://localhost:5000",
+      "http://localhost:5001",
+    ],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-// Test DB connection
+app.use((req, res, next) => {
+  console.log("👉 Request nhận được:", req.method, req.url);
+  console.log("👉 Headers:", req.headers);
+  next();
+});
+
+app.use(
+  "/api/auth",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/auth:", req.method, req.originalUrl);
+    next();
+  },
+  authRoutes
+);
+
+app.use(
+  "/api/products",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/products:", req.method, req.originalUrl);
+    next();
+  },
+  productRoutes
+);
+
 testConnection();
 
 app.listen(PORT, () => {
-  console.log(`Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
 });

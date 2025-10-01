@@ -8,7 +8,9 @@ export const getProducts = async (_req: Request, res: Response) => {
     const [rows] = await db.query("SELECT * FROM sanpham");
     res.json(rows);
   } catch (err: any) {
-    res.status(500).json({ message: "Lỗi khi lấy sản phẩm", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy sản phẩm", error: err.message });
   }
 };
 
@@ -23,7 +25,9 @@ export const getProduct = async (req: Request, res: Response) => {
     }
     res.json(product);
   } catch (err: any) {
-    res.status(500).json({ message: "Lỗi khi lấy sản phẩm", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi lấy sản phẩm", error: err.message });
   }
 };
 
@@ -52,7 +56,9 @@ export const createProduct = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: "Thêm sản phẩm thành công" });
   } catch (err: any) {
-    res.status(500).json({ message: "Lỗi khi thêm sản phẩm", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi thêm sản phẩm", error: err.message });
   }
 };
 
@@ -60,10 +66,21 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await db.query("UPDATE sanpham SET ? WHERE MaSP = ?", [req.body, id]);
+    const { TenSP, MoTa, GiaNhap, GiaBan, SoLuongTon, XuatXu, HinhAnh } =
+      req.body;
+
+    await db.query(
+      `UPDATE sanpham 
+       SET TenSP = ?, MoTa = ?, GiaNhap = ?, GiaBan = ?, SoLuongTon = ?, XuatXu = ?, HinhAnh = ? 
+       WHERE MaSP = ?`,
+      [TenSP, MoTa, GiaNhap, GiaBan, SoLuongTon, XuatXu, HinhAnh, id]
+    );
+
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (err: any) {
-    res.status(500).json({ message: "Lỗi khi cập nhật sản phẩm", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi cập nhật sản phẩm", error: err.message });
   }
 };
 
@@ -74,6 +91,8 @@ export const deleteProduct = async (req: Request, res: Response) => {
     await db.query("DELETE FROM sanpham WHERE MaSP = ?", [id]);
     res.json({ message: "Xoá sản phẩm thành công" });
   } catch (err: any) {
-    res.status(500).json({ message: "Lỗi khi xoá sản phẩm", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xoá sản phẩm", error: err.message });
   }
 };
