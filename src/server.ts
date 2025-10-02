@@ -20,6 +20,7 @@ app.use(
       "http://localhost:5002",
       "http://localhost:5000",
       "http://localhost:5001",
+      "https://regional-specialties-fe.up.railway.app",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
