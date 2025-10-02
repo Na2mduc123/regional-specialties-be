@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import { db } from "../database";
 import { User } from "../model/user.model";
 import dotenv from "dotenv";
+import crypto from "crypto"; // Làm chức năng quên mật khẩu
+import nodemailer from "nodemailer"; // // Làm chức năng quên mật khẩu
 
 dotenv.config();
 
@@ -72,8 +74,10 @@ export const getProfile = async (req: any, res: Response) => {
 // Cập nhật thông tin khách hàng (auto INSERT nếu thiếu KhachHang)
 export const updateUser = async (req: Request, res: Response) => {
   let connection: any = null;
+  let userId: number | null = null;
   try {
-    const userId = req.params.id;
+    const userId = Number(req.params.id);
+
     const { SoDienThoai, DiaChi } = req.body;
 
     // Kiểm tra tồn tại users trước (để tránh update ghost user)
