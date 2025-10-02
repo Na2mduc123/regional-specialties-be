@@ -15,14 +15,22 @@ app.use(express.json());
 // Cấu hình CORS cho các frontend port khác nhau
 app.use(
   cors({
-    origin: [
-      "http://localhost:5003",
-      "http://localhost:5002",
-      "http://localhost:5000",
-      "http://localhost:5001",
-      "https://regional-specialties-fe.up.railway.app",
-      "https://regional-specialties.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "http://localhost:5003",
+        "http://localhost:5002",
+        "http://localhost:5000",
+        "http://localhost:5001",
+        "https://regional-specialties-fe.up.railway.app",
+        "https://regional-specialties.vercel.app",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
