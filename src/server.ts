@@ -21,6 +21,7 @@ app.use(
       "http://localhost:5000",
       "http://localhost:5001",
       "https://regional-specialties-fe.up.railway.app",
+      "https://regional-specialties.vercel.app",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
