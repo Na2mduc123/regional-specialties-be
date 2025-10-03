@@ -52,7 +52,7 @@ export const getProfile = async (req: any, res: Response) => {
          k.DiaChi,
          k.NgayDangKy
        FROM users u
-       LEFT JOIN KhachHang k ON u.id = k.user_id 
+       LEFT JOIN khachhang k ON u.id = k.user_id 
        WHERE u.id = ?`,
       [userId]
     ); // Sử dụng 'LEFT JOIN' thay vì JOIN để hiện những thông tin bảng users có mà bảng 'KhachHang' không có. Nếu dùng mỗi JOIN thì nó sẽ hiện chưa đăng nhập và không hiển thị thông tin tài khoản
@@ -91,7 +91,7 @@ export const updateUser = async (req: Request, res: Response) => {
     }
 
     // Kiểm tra tồn tại khách hàng
-    const [rows] = await db.query("SELECT 1 FROM KhachHang WHERE user_id = ?", [
+    const [rows] = await db.query("SELECT 1 FROM khachhang WHERE user_id = ?", [
       userId,
     ]);
 
@@ -107,12 +107,12 @@ export const updateUser = async (req: Request, res: Response) => {
       await connection.beginTransaction();
 
       await connection.query(
-        "INSERT INTO KhachHang (MaKH, HoTen, user_id, NgayDangKy, SoDienThoai, DiaChi) VALUES (?, ?, ?, NOW(), ?, ?)",
+        "INSERT INTO khachhang (MaKH, HoTen, user_id, NgayDangKy, SoDienThoai, DiaChi) VALUES (?, ?, ?, NOW(), ?, ?)",
         [userId, fullname, userId, SoDienThoai, DiaChi]
       );
 
       await connection.commit();
-      console.log(`Auto tạo KhachHang cho user ${userId}`); // Log để debug
+      console.log(`Auto tạo khachhang cho user ${userId}`); // Log để debug
 
       // Trả success ngay vì đã tạo + update
       return res.json({
@@ -129,7 +129,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     // Cập nhật thông tin (giữ nguyên)
     const [result]: any = await db.query(
-      "UPDATE KhachHang SET SoDienThoai = ?, DiaChi = ? WHERE user_id = ?",
+      "UPDATE khachhang SET SoDienThoai = ?, DiaChi = ? WHERE user_id = ?",
       [SoDienThoai, DiaChi, userId]
     );
 
@@ -139,7 +139,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     // Lấy lại thông tin khách hàng sau khi update
     const [updatedUser] = await db.query(
-      "SELECT user_id, SoDienThoai, DiaChi FROM KhachHang WHERE user_id = ?",
+      "SELECT user_id, SoDienThoai, DiaChi FROM khachhang WHERE user_id = ?",
       [userId]
     );
 
@@ -195,7 +195,7 @@ export const register = async (req: Request, res: Response) => {
     );
 
     await connection.query(
-      "INSERT INTO KhachHang (MaKH, HoTen, user_id, NgayDangKy) VALUES (?, ?, ?, NOW())",
+      "INSERT INTO khachhang (MaKH, HoTen, user_id, NgayDangKy) VALUES (?, ?, ?, NOW())",
       [id, fullname, id]
     );
 
