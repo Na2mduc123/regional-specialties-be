@@ -23,7 +23,7 @@ export const getAllUsers = async (_req: Request, res: Response) => {
         kh.DiaChiChiTiet, 
         kh.DiaChiDayDu
       FROM users u
-      LEFT JOIN KhachHang kh ON u.id = kh.MaKH
+      LEFT JOIN khachhang kh ON u.id = kh.MaKH
       ORDER BY u.created_at DESC
     `);
     res.json(rows);
@@ -82,7 +82,7 @@ export const createUser = async (req: Request, res: Response) => {
 
     // Tạo bản ghi KhachHang
     await db.execute<ResultSetHeader>(
-      `INSERT INTO KhachHang 
+      `INSERT INTO khachhang 
    (MaKH, HoTen, SoDienThoai, TinhThanh, QuanHuyen, PhuongXa, DiaChiChiTiet, user_id)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -105,7 +105,7 @@ export const createUser = async (req: Request, res: Response) => {
         kh.HoTen, kh.SoDienThoai, kh.TinhThanh, kh.QuanHuyen, kh.PhuongXa, 
         kh.DiaChiChiTiet, kh.DiaChiDayDu
       FROM users u
-      LEFT JOIN KhachHang kh ON u.id = kh.MaKH
+      LEFT JOIN khachhang kh ON u.id = kh.MaKH
       WHERE u.id = ?`,
       [userId]
     );
@@ -144,7 +144,7 @@ export const updateUser = async (req: Request, res: Response) => {
         kh.SoDienThoai, kh.TinhThanh, kh.QuanHuyen, kh.PhuongXa, 
         kh.DiaChiChiTiet, kh.DiaChiDayDu
       FROM users u
-      LEFT JOIN KhachHang kh ON u.id = kh.MaKH
+      LEFT JOIN khachhang kh ON u.id = kh.MaKH
       WHERE u.id = ?`,
       [id]
     );
@@ -194,7 +194,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     // Cập nhật bảng KhachHang (🟢 lưu tên tỉnh/huyện/xã)
     await db.execute<ResultSetHeader>(
-      `UPDATE KhachHang 
+      `UPDATE khachhang 
    SET HoTen = ?, SoDienThoai = ?, TinhThanh = ?, QuanHuyen = ?, PhuongXa = ?, 
        DiaChiChiTiet = ?
    WHERE MaKH = ?`,
@@ -217,7 +217,7 @@ export const updateUser = async (req: Request, res: Response) => {
         kh.HoTen, kh.SoDienThoai, kh.TinhThanh, kh.QuanHuyen, kh.PhuongXa, 
         kh.DiaChiChiTiet, kh.DiaChiDayDu
       FROM users u
-      LEFT JOIN KhachHang kh ON u.id = kh.MaKH
+      LEFT JOIN khachhang kh ON u.id = kh.MaKH
       WHERE u.id = ?`,
       [id]
     );
