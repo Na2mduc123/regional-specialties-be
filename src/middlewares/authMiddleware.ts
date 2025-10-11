@@ -16,7 +16,6 @@ export const authMiddleware = (
   next: NextFunction
 ) => {
   try {
-    // Lấy header Authorization: Bearer <token>
     const authHeader = req.headers["authorization"];
     console.log("👉 Auth header FE gửi lên:", authHeader);
 
@@ -24,7 +23,6 @@ export const authMiddleware = (
       return res.status(401).json({ message: "Thiếu Authorization header" });
     }
 
-    // Tách token
     const parts = authHeader.split(" ");
     if (parts.length !== 2 || parts[0] !== "Bearer") {
       return res
@@ -33,20 +31,14 @@ export const authMiddleware = (
     }
 
     const token = parts[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    // Xác thực token
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Gắn user đã decode vào req để controller dùng
-    req.user = decoded;
-
+    req.user = decoded; // gắn vào request
     next();
   } catch (error: any) {
-    return res
-      .status(403)
-      .json({
-        message: "Token không hợp lệ hoặc đã hết hạn",
-        error: error.message,
-      });
+    return res.status(403).json({
+      message: "Token không hợp lệ hoặc đã hết hạn",
+      error: error.message,
+    });
   }
 };

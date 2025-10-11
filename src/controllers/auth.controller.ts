@@ -38,24 +38,30 @@ export const getProfile = async (req: any, res: Response) => {
 
     const [rows] = await db.query(
       `SELECT 
-         u.id,
-         u.fullname,
-         u.username,
-         u.email,
-         u.role,
-         u.avatar,
-         u.created_at,
-         u.updated_at,
-         k.MaKH,
-         k.HoTen,
-         k.SoDienThoai,
-         k.DiaChi,
-         k.NgayDangKy
-       FROM users u
-       LEFT JOIN khachhang k ON u.id = k.user_id 
-       WHERE u.id = ?`,
+     u.id,
+     u.fullname,
+     u.username,
+     u.email,
+     u.role,
+     u.avatar,
+     u.created_at,
+     u.updated_at,
+     k.MaKH,
+     k.HoTen,
+     k.SoDienThoai,
+     k.TinhThanh,
+     k.QuanHuyen,
+     k.PhuongXa,
+     k.DiaChiChiTiet AS DiaChi,
+     k.DiaChiDayDu,
+     k.NgayDangKy
+   FROM users u
+   LEFT JOIN khachhang k ON u.id = k.user_id 
+   WHERE u.id = ?`,
       [userId]
-    ); // Sử dụng 'LEFT JOIN' thay vì JOIN để hiện những thông tin bảng users có mà bảng 'KhachHang' không có. Nếu dùng mỗi JOIN thì nó sẽ hiện chưa đăng nhập và không hiển thị thông tin tài khoản
+    );
+
+    // Sử dụng 'LEFT JOIN' thay vì JOIN để hiện những thông tin bảng users có mà bảng 'KhachHang' không có. Nếu dùng mỗi JOIN thì nó sẽ hiện chưa đăng nhập và không hiển thị thông tin tài khoản
 
     const user = (rows as any[])[0];
 
@@ -74,89 +80,87 @@ export const getProfile = async (req: any, res: Response) => {
 // Cập nhật thông tin khách hàng (auto INSERT nếu thiếu KhachHang)
 export const updateUser = async (req: Request, res: Response) => {
   let connection: any = null;
-  let userId: number | null = null;
   try {
     const userId = Number(req.params.id);
+    const { SoDienThoai, DiaChiChiTiet, TinhThanh, QuanHuyen, PhuongXa } =
+      req.body;
 
-    const { SoDienThoai, DiaChi } = req.body;
-
-    // Kiểm tra tồn tại users trước (để tránh update ghost user)
-    const [userRows] = await db.query("SELECT 1 FROM users WHERE id = ?", [
-      userId,
-    ]);
+    // Kiểm tra user tồn tại
+    const [userRows] = await db.query(
+      "SELECT fullname FROM users WHERE id = ?",
+      [userId]
+    );
     if ((userRows as any[]).length === 0) {
       return res
         .status(404)
         .json({ message: "Không tìm thấy tài khoản người dùng" });
     }
+    const fullname = (userRows as any[])[0].fullname;
 
-    // Kiểm tra tồn tại khách hàng
-    const [rows] = await db.query("SELECT 1 FROM khachhang WHERE user_id = ?", [
-      userId,
-    ]);
-
-    if ((rows as any[]).length === 0) {
-      // Auto INSERT KhachHang nếu thiếu (lấy fullname từ users để fill HoTen)
-      const [userInfo] = await db.query(
-        "SELECT fullname FROM users WHERE id = ?",
-        [userId]
-      );
-      const fullname = (userInfo as any[])[0]?.fullname || "Unknown";
-
-      connection = await db.getConnection(); // Giả sử pool
-      await connection.beginTransaction();
-
-      await connection.query(
-        "INSERT INTO khachhang (MaKH, HoTen, user_id, NgayDangKy, SoDienThoai, DiaChi) VALUES (?, ?, ?, NOW(), ?, ?)",
-        [userId, fullname, userId, SoDienThoai, DiaChi]
-      );
-
-      await connection.commit();
-      console.log(`Auto tạo khachhang cho user ${userId}`); // Log để debug
-
-      // Trả success ngay vì đã tạo + update
-      return res.json({
-        message: "Tạo và cập nhật thông tin thành công",
-        data: { user_id: userId, SoDienThoai, DiaChi },
-      });
-    }
-
-    // Release connection nếu không dùng (vì không auto insert)
-    if (connection) {
-      connection.release();
-      connection = null;
-    }
-
-    // Cập nhật thông tin (giữ nguyên)
-    const [result]: any = await db.query(
-      "UPDATE khachhang SET SoDienThoai = ?, DiaChi = ? WHERE user_id = ?",
-      [SoDienThoai, DiaChi, userId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(400).json({ message: "Không có gì thay đổi" });
-    }
-
-    // Lấy lại thông tin khách hàng sau khi update
-    const [updatedUser] = await db.query(
-      "SELECT user_id, SoDienThoai, DiaChi FROM khachhang WHERE user_id = ?",
+    // Kiểm tra khách hàng đã có trong bảng chưa
+    const [khRows] = await db.query(
+      "SELECT 1 FROM khachhang WHERE user_id = ?",
       [userId]
     );
 
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    if ((khRows as any[]).length === 0) {
+      // ✅ Nếu chưa có → thêm mới
+      await connection.query(
+        `INSERT INTO khachhang 
+        (MaKH, HoTen, SoDienThoai, user_id, NgayDangKy, TinhThanh, QuanHuyen, PhuongXa, DiaChiChiTiet)
+        VALUES (?, ?, ?, ?, NOW(), ?, ?, ?, ?)`,
+        [
+          userId,
+          fullname,
+          SoDienThoai,
+          userId,
+          TinhThanh,
+          QuanHuyen,
+          PhuongXa,
+          DiaChiChiTiet,
+        ]
+      );
+    } else {
+      // ✅ Nếu đã có → cập nhật thông tin
+      await connection.query(
+        `UPDATE khachhang 
+         SET SoDienThoai = ?, 
+             TinhThanh = ?, 
+             QuanHuyen = ?, 
+             PhuongXa = ?, 
+             DiaChiChiTiet = ?
+         WHERE user_id = ?`,
+        [SoDienThoai, TinhThanh, QuanHuyen, PhuongXa, DiaChiChiTiet, userId]
+      );
+    }
+
+    await connection.commit();
     res.json({
       message: "Cập nhật thông tin thành công",
-      data: (updatedUser as any[])[0],
+      data: {
+        user_id: userId,
+        SoDienThoai,
+        TinhThanh,
+        QuanHuyen,
+        PhuongXa,
+        DiaChiChiTiet,
+        DiaChiDayDu: `${DiaChiChiTiet}, ${PhuongXa}, ${QuanHuyen}, ${TinhThanh}`,
+      },
     });
   } catch (error: any) {
     if (connection) {
       await connection.rollback();
       connection.release();
     }
-    console.error(`Lỗi updateUser ${userId}:`, error); // Log chi tiết
-    res.status(500).json({
-      message: "Lỗi khi cập nhật thông tin",
-      error: error.message,
-    });
+    console.error("Lỗi updateUser:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi cập nhật thông tin", error: error.message });
+  } finally {
+    if (connection) connection.release();
   }
 };
 

@@ -3,6 +3,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.router";
+import adminRoutes from "./routes/admin.router";
+import uploadRoutes from "./routes/upload.router";
+import path from "path";
 import { testConnection } from "./database";
 
 dotenv.config();
@@ -67,6 +70,27 @@ app.use(
   },
   productRoutes
 );
+
+app.use(
+  "/api/admin",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/admin:", req.method, req.originalUrl);
+    next();
+  },
+  adminRoutes
+);
+
+app.use(
+  "/api/upload",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/upload:", req.method, req.originalUrl);
+    next();
+  },
+  uploadRoutes
+);
+
+// Cho phép client truy cập ảnh đã upload (tĩnh)
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 testConnection();
 
