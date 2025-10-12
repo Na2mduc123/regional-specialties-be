@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload, TokenExpiredError } from "jsonwebtoken";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -31,13 +31,24 @@ export const authMiddleware = (
     }
 
     const token = parts[1];
+
+    // ✅ Kiểm tra và giải mã token
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    req.user = decoded; // gắn vào request
+    req.user = decoded; // gắn user info vào request
     next();
   } catch (error: any) {
+    // ✅ Nếu token hết hạn
+    if (error instanceof TokenExpiredError) {
+      return res.status(401).json({
+        message: "Token đã hết hạn",
+        error: "jwt expired",
+      });
+    }
+
+    // ✅ Nếu token sai hoặc không giải mã được
     return res.status(403).json({
-      message: "Token không hợp lệ hoặc đã hết hạn",
+      message: "Token không hợp lệ",
       error: error.message,
     });
   }
