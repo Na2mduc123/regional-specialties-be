@@ -34,12 +34,12 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Thiếu userId" });
     }
 
-    // 🧩 Tạo URL tuyệt đối
+    // Tạo URL tuyệt đối
     const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${
       req.file.filename
     }`;
 
-    // ✅ Lưu luôn URL tuyệt đối vào DB (để không bị mất ảnh khi login lại)
+    // Lưu luôn URL tuyệt đối vào DB (để không bị mất ảnh khi login lại)
     await db.query("UPDATE users SET avatar = ? WHERE id = ?", [
       fullUrl,
       userId,
@@ -52,7 +52,7 @@ export const uploadAvatar = async (req: Request, res: Response) => {
       url: fullUrl,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi lưu avatar:", error);
+    console.error("Lỗi khi lưu avatar:", error);
     res.status(500).json({ message: "Lỗi khi lưu avatar vào DB" });
   }
 };

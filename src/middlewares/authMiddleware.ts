@@ -7,7 +7,7 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET || "defaultsecret";
 
 export interface AuthRequest extends Request {
-  user?: JwtPayload | string;
+  user?: JwtPayload & { id?: number; username?: string }; // tiện lấy id
 }
 
 export const authMiddleware = (
