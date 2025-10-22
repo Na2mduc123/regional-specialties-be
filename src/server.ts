@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.router";
 import adminRoutes from "./routes/admin.router";
 import uploadRoutes from "./routes/upload.router";
+import feedbackRoutes from "./routes/feedback.router";
 import path from "path";
 import { testConnection } from "./database";
 
@@ -91,6 +92,15 @@ app.use(
 
 // Cho phép client truy cập ảnh đã upload (tĩnh)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+
+app.use(
+  "/api/feedback",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/feedback:", req.method, req.originalUrl);
+    next();
+  },
+  feedbackRoutes
+);
 
 testConnection();
 
