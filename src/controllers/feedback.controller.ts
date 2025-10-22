@@ -48,7 +48,7 @@ export const FeedbackController = {
           k.TinhThanh
         FROM feedback AS f
         JOIN users AS u ON f.user_id = u.id
-        LEFT JOIN KhachHang AS k ON f.user_id = k.user_id
+        LEFT JOIN khachhang AS k ON f.user_id = k.user_id
         ORDER BY f.created_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `);
@@ -83,7 +83,7 @@ export const FeedbackController = {
           k.TinhThanh
         FROM feedback AS f
         JOIN users AS u ON f.user_id = u.id
-        LEFT JOIN KhachHang AS k ON f.user_id = k.user_id
+        LEFT JOIN khachhang AS k ON f.user_id = k.user_id
         WHERE f.user_id = ?
         ORDER BY f.created_at DESC
         `,
