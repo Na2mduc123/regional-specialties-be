@@ -1,4 +1,3 @@
-// controllers/feedback.controller.ts
 import { Request, Response } from "express";
 import { db } from "../database";
 
@@ -9,17 +8,18 @@ export const FeedbackController = {
       const user_id = (req as any).user?.id;
       const { rating, comment } = req.body;
 
+      console.log("📌 create feedback input:", { user_id, rating, comment });
+
       if (!user_id) return res.status(401).json({ message: "Chưa đăng nhập" });
       if (!rating || !comment)
         return res.status(400).json({ message: "Thiếu dữ liệu đánh giá" });
 
-      const [result]: any = await db.execute(
-        `INSERT INTO feedback (user_id, rating, comment)
-         VALUES (?, ?, ?)`,
-        [user_id, rating, comment]
-      );
+      const sql = `INSERT INTO feedback (user_id, rating, comment) VALUES (?, ?, ?)`;
+      console.log("📌 Executing SQL:", sql, [user_id, rating, comment]);
 
-      console.log("✅ Feedback created:", {
+      const [result]: any = await db.execute(sql, [user_id, rating, comment]);
+
+      console.log("✅ feedback created:", {
         review_id: result.insertId,
         user_id,
       });
@@ -39,7 +39,6 @@ export const FeedbackController = {
   // 📋 Lấy toàn bộ đánh giá (có phân trang, kèm fullname + avatar + tỉnh thành)
   async getAll(req: Request, res: Response) {
     try {
-      // Parse query params
       const page = Number(req.query.page) > 0 ? Number(req.query.page) : 1;
       const limit = Number(req.query.limit) > 0 ? Number(req.query.limit) : 6;
       const offset = (page - 1) * limit;
@@ -51,10 +50,9 @@ export const FeedbackController = {
         `SELECT COUNT(*) AS total FROM feedback`
       );
       const totalPages = Math.ceil(total / limit);
+      console.log("📌 Total feedback:", total, "Total pages:", totalPages);
 
-      // Lấy dữ liệu feedback kèm user info và tỉnh thành
-      // Chú ý: LIMIT và OFFSET không dùng placeholder, chèn trực tiếp vào query
-      const [rows]: any = await db.query(`
+      const sql = `
       SELECT 
         f.id, f.rating, f.comment, f.created_at,
         u.fullname, u.avatar,
@@ -64,8 +62,10 @@ export const FeedbackController = {
       LEFT JOIN khachhang AS k ON f.user_id = k.user_id
       ORDER BY f.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
-    `);
+      `;
+      console.log("📌 Executing SQL getAll:", sql);
 
+      const [rows]: any = await db.query(sql);
       console.log("📌 Feedback rows fetched:", rows.length);
 
       return res.json({
@@ -94,21 +94,20 @@ export const FeedbackController = {
       const { id } = req.params;
       console.log("📌 getByUser feedback for user_id:", id);
 
-      const [rows]: any = await db.execute(
-        `
-        SELECT 
-          f.id, f.rating, f.comment, f.created_at,
-          u.fullname, u.avatar,
-          k.TinhThanh
-        FROM feedback AS f
-        JOIN users AS u ON f.user_id = u.id
-        LEFT JOIN khachhang AS k ON f.user_id = k.user_id
-        WHERE f.user_id = ?
-        ORDER BY f.created_at DESC
-        `,
-        [id]
-      );
+      const sql = `
+      SELECT 
+        f.id, f.rating, f.comment, f.created_at,
+        u.fullname, u.avatar,
+        k.TinhThanh
+      FROM feedback AS f
+      JOIN users AS u ON f.user_id = u.id
+      LEFT JOIN khachhang AS k ON f.user_id = k.user_id
+      WHERE f.user_id = ?
+      ORDER BY f.created_at DESC
+      `;
+      console.log("📌 Executing SQL getByUser:", sql, [id]);
 
+      const [rows]: any = await db.execute(sql, [id]);
       console.log("📌 Feedback rows fetched by user:", rows.length);
 
       return res.json(rows);
@@ -124,13 +123,14 @@ export const FeedbackController = {
   async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-
       console.log("📌 Delete feedback id:", id);
 
-      const [result]: any = await db.execute(
-        `DELETE FROM feedback WHERE id = ?`,
-        [id]
-      );
+      const sql = `DELETE FROM feedback WHERE id = ?`;
+      console.log("📌 Executing SQL delete:", sql, [id]);
+
+      const [result]: any = await db.execute(sql, [id]);
+
+      console.log("📌 Delete result:", result);
 
       if (result.affectedRows === 0)
         return res.status(404).json({ message: "Không tìm thấy đánh giá" });
