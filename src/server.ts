@@ -6,7 +6,9 @@ import productRoutes from "./routes/product.router";
 import adminRoutes from "./routes/admin.router";
 import uploadRoutes from "./routes/upload.router";
 import feedbackRoutes from "./routes/feedback.router";
+import uploadImgproductRouter from "./routes/upload.imgproduct.router";
 import path from "path";
+import fs from "fs"; // Thêm fs để kiểm tra/thêm thư mục
 import { testConnection } from "./database";
 
 dotenv.config();
@@ -64,9 +66,10 @@ app.use(
 );
 
 app.use(
-  "/api/products",
+  "/api/sanpham",
   (req, res, next) => {
-    console.log("🔥 Vào được /api/products:", req.method, req.originalUrl);
+    console.log("🔥 Vào được /api/sanpham:", req.method, req.originalUrl);
+    console.log("👉 Headers:", req.headers);
     next();
   },
   productRoutes
@@ -91,7 +94,14 @@ app.use(
 );
 
 // Cho phép client truy cập ảnh đã upload (tĩnh)
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(
+  "/api/imgproduct",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/imgproduct:", req.method, req.originalUrl);
+    next();
+  },
+  uploadImgproductRouter
+);
 
 app.use(
   "/api/feedback",
@@ -101,6 +111,14 @@ app.use(
   },
   feedbackRoutes
 );
+
+// Cập nhật static serving
+const uploadPath = path.join(__dirname, "../upload");
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+  console.log("Đã tạo thư mục upload tại:", uploadPath); // Debug
+}
+app.use("/uploads", express.static(uploadPath)); // Trỏ đến upload cùng cấp với src
 
 testConnection();
 

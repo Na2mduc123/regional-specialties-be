@@ -1,13 +1,23 @@
-import { Router } from "express";
-import * as productController from "../controllers/products.controller";
+import express from "express";
+import {
+  getAllSanPham,
+  getSanPhamById,
+  createSanPham,
+  updateSanPham,
+  deleteSanPham,
+} from "../controllers/products.controller";
+import { authMiddleware } from "../middlewares/authMiddleware";
+import { verifyAdmin } from "../middlewares/verifyAdmin";
 
+const router = express.Router();
 
-const router = Router();
+// Public routes
+router.get("/", getAllSanPham);
+router.get("/:id", getSanPhamById);
 
-router.get("/", productController.getProducts);
-router.get("/:id", productController.getProduct);
-router.post("/", productController.createProduct);
-router.put("/:id", productController.updateProduct);
-router.delete("/:id", productController.deleteProduct);
+// Admin-only routes
+router.post("/", authMiddleware, verifyAdmin, createSanPham);
+router.put("/:id", authMiddleware, verifyAdmin, updateSanPham);
+router.delete("/:id", authMiddleware, verifyAdmin, deleteSanPham);
 
 export default router;

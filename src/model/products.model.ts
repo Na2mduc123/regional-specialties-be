@@ -1,10 +1,20 @@
-export interface Product {
-  MaSP: string;
+export interface SanPham {
+  MaSP?: number;
   TenSP: string;
-  MoTa: string;
-  GiaNhap: number;
+  HinhAnh?: string;
+  GiaNhap?: number;
   GiaBan: number;
-  SoLuongTon: number;
-  XuatXu: string;
-  HinhAnh: string;
+  SoLuongTon?: number;
+  DaBan?: number;
+  DanhGiaTrungBinh?: number;
+  TongLuotDanhGia?: number;
+  HanSuDung?: string;
+  XuatXu?: string;
+  MoTa?: string;
+  Voucher?: string;
+  user_id: number;
+  VungMien?: "bac" | "trung" | "nam";
+  LoaiDoAn?: "tai_cho" | "do_kho";
+  created_at?: string;
+  updated_at?: string;
 }
