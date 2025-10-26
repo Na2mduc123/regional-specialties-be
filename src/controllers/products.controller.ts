@@ -132,14 +132,31 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
 // 🧩 Cập nhật sản phẩm (admin)
 export const updateSanPham = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const data: SanPham & { VungMien?: string; LoaiDoAn?: string } = req.body;
+  const data: any = req.body;
 
   try {
+    // 🚫 Không cho phép sửa user_id qua API này
+    delete data.user_id;
+
+    // 🚫 Bỏ các trường undefined/null không cần thiết
+    Object.keys(data).forEach((key) => {
+      if (data[key] === undefined || data[key] === null) {
+        delete data[key];
+      }
+    });
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ message: "Không có dữ liệu để cập nhật" });
+    }
+
     await db.query(`UPDATE SanPham SET ? WHERE MaSP = ?`, [data, id]);
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi khi cập nhật sản phẩm" });
+    console.error("❌ Lỗi SQL khi cập nhật:", error);
+    res.status(500).json({
+      message: "Lỗi khi cập nhật sản phẩm",
+      error: (error as Error).message,
+    });
   }
 };
 
