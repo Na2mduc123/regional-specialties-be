@@ -7,6 +7,8 @@ import adminRoutes from "./routes/admin.router";
 import uploadRoutes from "./routes/upload.router";
 import feedbackRoutes from "./routes/feedback.router";
 import uploadImgproductRouter from "./routes/upload.imgproduct.router";
+import { uploadAvatarRouter } from "./routes/upload.avatar.router";
+
 import path from "path";
 import fs from "fs"; // Thêm fs để kiểm tra/thêm thư mục
 import { testConnection } from "./database";
@@ -84,16 +86,18 @@ app.use(
   adminRoutes
 );
 
-app.use(
-  "/api/upload",
-  (req, res, next) => {
-    console.log("🔥 Vào được /api/upload:", req.method, req.originalUrl);
-    next();
-  },
-  uploadRoutes
-);
+// app.use(
+//   "/api/upload",
+//   (req, res, next) => {
+//     console.log("🔥 Vào được /api/upload:", req.method, req.originalUrl);
+//     next();
+//   },
+//   uploadRoutes
+// );
 
 // Cho phép client truy cập ảnh đã upload (tĩnh)
+
+console.log("🧩 uploadImgproductRouter =", uploadImgproductRouter);
 app.use(
   "/api/imgproduct",
   (req, res, next) => {
@@ -102,6 +106,17 @@ app.use(
   },
   uploadImgproductRouter
 );
+
+console.log("🧩 uploadAvatarRouter =", uploadAvatarRouter);
+app.use(
+  "/api/upload",
+  (req, res, next) => {
+    console.log("🔥 Vào được /api/upload:", req.method, req.originalUrl);
+    next();
+  },
+  uploadAvatarRouter
+);
+app.use("/avatars", express.static(path.join(__dirname, "../public/avatars")));
 
 app.use(
   "/api/feedback",
@@ -119,6 +134,13 @@ if (!fs.existsSync(uploadPath)) {
   console.log("Đã tạo thư mục upload tại:", uploadPath); // Debug
 }
 app.use("/uploads", express.static(uploadPath)); // Trỏ đến upload cùng cấp với src
+
+const avatarPath = path.join(__dirname, "../public");
+if (!fs.existsSync(avatarPath)) {
+  fs.mkdirSync(avatarPath, { recursive: true });
+  console.log("📂 Đã tạo thư mục public:", avatarPath);
+}
+app.use("/public", express.static(avatarPath)); // Cho phép truy cập ảnh avatar
 
 testConnection();
 
