@@ -4,6 +4,7 @@ export interface SanPham {
   HinhAnh?: string;
   GiaNhap?: number;
   GiaBan: number;
+  GiaSauGiam?: number;
   SoLuongTon?: number;
   DaBan?: number;
   DanhGiaTrungBinh?: number;
