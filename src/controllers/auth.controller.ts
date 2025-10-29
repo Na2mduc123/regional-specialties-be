@@ -166,7 +166,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
 // Đăng ký
 export const register = async (req: Request, res: Response) => {
-  let connection: any = null; // Giả sử db là pool
+  let connection: any = null;
   try {
     const { fullname, username, password, email } = req.body;
 
