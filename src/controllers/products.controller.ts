@@ -38,13 +38,22 @@ export const getAllSanPham = async (req: Request, res: Response) => {
 
     sql += " ORDER BY sp.created_at DESC";
 
+    console.log("SQL Query:", sql);
+    console.log("Params:", params);
+
     const [rows] = await db.query(sql, params);
     res.json(rows);
   } catch (error) {
     console.error("❌ Lỗi getAllSanPham:", error);
-    if ((error as any).sqlMessage)
+    if ((error as any).sqlMessage) {
       console.error("SQL Message:", (error as any).sqlMessage);
-    res.status(500).json({ message: "Lỗi khi lấy danh sách sản phẩm" });
+    }
+    // tạm thời gửi chi tiết lỗi về client để debug
+    res.status(500).json({
+      message: "Lỗi khi lấy danh sách sản phẩm",
+      error: (error as any).message,
+      sqlMessage: (error as any).sqlMessage,
+    });
   }
 };
 
@@ -150,12 +159,10 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
     console.error("❌ Lỗi createSanPham:", error);
     if ((error as any).sqlMessage)
       console.error("SQL Message:", (error as any).sqlMessage);
-    res
-      .status(500)
-      .json({
-        message: "Lỗi khi thêm sản phẩm",
-        error: (error as Error).message,
-      });
+    res.status(500).json({
+      message: "Lỗi khi thêm sản phẩm",
+      error: (error as Error).message,
+    });
   }
 };
 
@@ -199,12 +206,10 @@ export const updateSanPham = async (req: Request, res: Response) => {
     console.error("❌ Lỗi updateSanPham:", error);
     if ((error as any).sqlMessage)
       console.error("SQL Message:", (error as any).sqlMessage);
-    res
-      .status(500)
-      .json({
-        message: "Lỗi khi cập nhật sản phẩm",
-        error: (error as Error).message,
-      });
+    res.status(500).json({
+      message: "Lỗi khi cập nhật sản phẩm",
+      error: (error as Error).message,
+    });
   }
 };
 
