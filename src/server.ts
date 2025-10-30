@@ -52,9 +52,18 @@ app.use(
   })
 );
 
+// Middleware log chỉ API, bỏ qua static files
 app.use((req, res, next) => {
+  // Nếu request tới static files thì bỏ qua log
+  if (
+    req.url.startsWith("/uploads") ||
+    req.url.startsWith("/public") ||
+    req.url.startsWith("/avatars")
+  ) {
+    return next();
+  }
+
   console.log("👉 Request nhận được:", req.method, req.url);
-  console.log("👉 Headers:", req.headers);
   next();
 });
 
