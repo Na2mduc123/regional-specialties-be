@@ -3,7 +3,7 @@ import { db } from "../database";
 import { SanPham } from "../model/products.model";
 import { AuthRequest } from "../middlewares/authMiddleware";
 
-// 🧩 Lấy tất cả sản phẩm
+// 🟢 Lấy tất cả sản phẩm
 export const getAllSanPham = async (req: Request, res: Response) => {
   try {
     const { vungmien, loaidan } = req.query;
@@ -13,7 +13,6 @@ export const getAllSanPham = async (req: Request, res: Response) => {
              u.fullname AS NguoiDang, 
              kh.SoDienThoai, 
              kh.DiaChiDayDu,
-             -- Tự động tính giá sau giảm (nếu cột chưa có)
              CASE 
                WHEN sp.Voucher IS NOT NULL AND sp.Voucher != '' 
                THEN ROUND(sp.GiaBan * (100 - CAST(REPLACE(sp.Voucher, '%', '') AS DECIMAL(5,2))) / 100, 2)
@@ -42,12 +41,14 @@ export const getAllSanPham = async (req: Request, res: Response) => {
     const [rows] = await db.query(sql, params);
     res.json(rows);
   } catch (error) {
-    console.error(error);
+    console.error("❌ Lỗi getAllSanPham:", error);
+    if ((error as any).sqlMessage)
+      console.error("SQL Message:", (error as any).sqlMessage);
     res.status(500).json({ message: "Lỗi khi lấy danh sách sản phẩm" });
   }
 };
 
-// 🧩 Lấy 1 sản phẩm theo id
+// 🟢 Lấy 1 sản phẩm theo id
 export const getSanPhamById = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -75,40 +76,38 @@ export const getSanPhamById = async (req: Request, res: Response) => {
 
     res.json(rows[0]);
   } catch (error) {
+    console.error("❌ Lỗi getSanPhamById:", error);
+    if ((error as any).sqlMessage)
+      console.error("SQL Message:", (error as any).sqlMessage);
     res.status(500).json({ message: "Lỗi khi lấy sản phẩm" });
   }
 };
 
-// 🧩 Tạo sản phẩm mới (admin)
+// 🟢 Tạo sản phẩm mới (admin)
 export const createSanPham = async (req: AuthRequest, res: Response) => {
   try {
     const data: SanPham & { VungMien?: string; LoaiDoAn?: string } = req.body;
-    if (data.HanSuDung) {
+    if (data.HanSuDung)
       data.HanSuDung = new Date(data.HanSuDung).toISOString().split("T")[0];
-    }
 
     const user_id = req.user?.id;
     if (!user_id)
       return res.status(401).json({ message: "Token không hợp lệ" });
 
-    // ✅ Check trùng sản phẩm
     const [existing]: any = await db.query(
       `SELECT MaSP FROM SanPham WHERE TenSP = ? AND XuatXu = ? AND VungMien = ?`,
       [data.TenSP, data.XuatXu, data.VungMien || "Bắc"]
     );
 
-    if (existing.length > 0) {
+    if (existing.length > 0)
       return res.status(400).json({ message: "Sản phẩm này đã tồn tại" });
-    }
 
-    // 🔹 Tính giá sau giảm (nếu có voucher)
     let GiaSauGiam = data.GiaBan;
     if (data.Voucher && data.Voucher.includes("%")) {
       const percent = parseFloat(data.Voucher.replace("%", "")) || 0;
       GiaSauGiam = Math.round((data.GiaBan * (100 - percent)) / 100);
     }
 
-    // 🔹 Sinh mã sản phẩm
     const generateRandomId = () => Math.floor(Math.random() * 900) + 100;
     let MaSP = generateRandomId();
     let exists = await db.query("SELECT MaSP FROM SanPham WHERE MaSP = ?", [
@@ -121,7 +120,6 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
       ]);
     }
 
-    // 🔹 Thêm sản phẩm
     await db.query(
       `INSERT INTO SanPham
         (MaSP, TenSP, HinhAnh, GiaNhap, GiaBan, GiaSauGiam, SoLuongTon, DaBan, DanhGiaTrungBinh, TongLuotDanhGia, HanSuDung, XuatXu, MoTa, Voucher, user_id, VungMien, LoaiDoAn)
@@ -149,21 +147,24 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ message: "Thêm sản phẩm thành công", MaSP });
   } catch (error) {
-    console.error("❌ Lỗi chi tiết khi thêm sản phẩm:", error);
-    res.status(500).json({
-      message: "Lỗi khi thêm sản phẩm",
-      error: (error as Error).message,
-    });
+    console.error("❌ Lỗi createSanPham:", error);
+    if ((error as any).sqlMessage)
+      console.error("SQL Message:", (error as any).sqlMessage);
+    res
+      .status(500)
+      .json({
+        message: "Lỗi khi thêm sản phẩm",
+        error: (error as Error).message,
+      });
   }
 };
 
-// 🧩 Cập nhật sản phẩm (admin)
+// 🟢 Cập nhật sản phẩm (admin)
 export const updateSanPham = async (req: Request, res: Response) => {
   const { id } = req.params;
   const data: any = req.body;
-  if (data.HanSuDung) {
+  if (data.HanSuDung)
     data.HanSuDung = new Date(data.HanSuDung).toISOString().split("T")[0];
-  }
 
   try {
     delete data.user_id;
@@ -172,11 +173,9 @@ export const updateSanPham = async (req: Request, res: Response) => {
       if (data[key] === undefined || data[key] === null) delete data[key];
     });
 
-    if (Object.keys(data).length === 0) {
+    if (Object.keys(data).length === 0)
       return res.status(400).json({ message: "Không có dữ liệu để cập nhật" });
-    }
 
-    // 🔹 Nếu có Voucher hoặc GiaBan thay đổi → cập nhật GiaSauGiam
     if (data.Voucher || data.GiaBan) {
       const [sp]: any = await db.query(
         "SELECT GiaBan, Voucher FROM SanPham WHERE MaSP = ?",
@@ -197,22 +196,28 @@ export const updateSanPham = async (req: Request, res: Response) => {
     await db.query(`UPDATE SanPham SET ? WHERE MaSP = ?`, [data, id]);
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (error) {
-    console.error("❌ Lỗi SQL khi cập nhật:", error);
-    res.status(500).json({
-      message: "Lỗi khi cập nhật sản phẩm",
-      error: (error as Error).message,
-    });
+    console.error("❌ Lỗi updateSanPham:", error);
+    if ((error as any).sqlMessage)
+      console.error("SQL Message:", (error as any).sqlMessage);
+    res
+      .status(500)
+      .json({
+        message: "Lỗi khi cập nhật sản phẩm",
+        error: (error as Error).message,
+      });
   }
 };
 
-// 🧩 Xóa sản phẩm
+// 🟢 Xóa sản phẩm
 export const deleteSanPham = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     await db.query(`DELETE FROM SanPham WHERE MaSP = ?`, [id]);
     res.json({ message: "Đã xóa sản phẩm" });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Lỗi deleteSanPham:", error);
+    if ((error as any).sqlMessage)
+      console.error("SQL Message:", (error as any).sqlMessage);
     res.status(500).json({ message: "Lỗi khi xóa sản phẩm" });
   }
 };
