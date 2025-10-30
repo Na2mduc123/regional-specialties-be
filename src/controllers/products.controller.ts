@@ -18,9 +18,9 @@ export const getAllSanPham = async (req: Request, res: Response) => {
                THEN ROUND(sp.GiaBan * (100 - CAST(REPLACE(sp.Voucher, '%', '') AS DECIMAL(5,2))) / 100, 2)
                ELSE sp.GiaBan 
              END AS GiaSauGiam
-      FROM SanPham sp
+      FROM sanpham sp
       JOIN users u ON sp.user_id = u.id
-      LEFT JOIN KhachHang kh ON kh.user_id = u.id
+      LEFT JOIN khachhang kh ON kh.user_id = u.id
       WHERE 1=1
     `;
 
@@ -72,9 +72,9 @@ export const getSanPhamById = async (req: Request, res: Response) => {
                 THEN ROUND(sp.GiaBan * (100 - CAST(REPLACE(sp.Voucher, '%', '') AS DECIMAL(5,2))) / 100, 2)
                 ELSE sp.GiaBan 
               END AS GiaSauGiam
-       FROM SanPham sp
+       FROM sanpham sp
        JOIN users u ON sp.user_id = u.id
-       LEFT JOIN KhachHang kh ON kh.user_id = u.id
+       LEFT JOIN khachhang kh ON kh.user_id = u.id
        WHERE sp.MaSP = ?
       `,
       [id]
@@ -104,7 +104,7 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "Token không hợp lệ" });
 
     const [existing]: any = await db.query(
-      `SELECT MaSP FROM SanPham WHERE TenSP = ? AND XuatXu = ? AND VungMien = ?`,
+      `SELECT MaSP FROM sanpham WHERE TenSP = ? AND XuatXu = ? AND VungMien = ?`,
       [data.TenSP, data.XuatXu, data.VungMien || "Bắc"]
     );
 
@@ -119,18 +119,18 @@ export const createSanPham = async (req: AuthRequest, res: Response) => {
 
     const generateRandomId = () => Math.floor(Math.random() * 900) + 100;
     let MaSP = generateRandomId();
-    let exists = await db.query("SELECT MaSP FROM SanPham WHERE MaSP = ?", [
+    let exists = await db.query("SELECT MaSP FROM sanpham WHERE MaSP = ?", [
       MaSP,
     ]);
     while ((exists as any)[0].length) {
       MaSP = generateRandomId();
-      exists = await db.query("SELECT MaSP FROM SanPham WHERE MaSP = ?", [
+      exists = await db.query("SELECT MaSP FROM sanpham WHERE MaSP = ?", [
         MaSP,
       ]);
     }
 
     await db.query(
-      `INSERT INTO SanPham
+      `INSERT INTO sanpham
         (MaSP, TenSP, HinhAnh, GiaNhap, GiaBan, GiaSauGiam, SoLuongTon, DaBan, DanhGiaTrungBinh, TongLuotDanhGia, HanSuDung, XuatXu, MoTa, Voucher, user_id, VungMien, LoaiDoAn)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -185,7 +185,7 @@ export const updateSanPham = async (req: Request, res: Response) => {
 
     if (data.Voucher || data.GiaBan) {
       const [sp]: any = await db.query(
-        "SELECT GiaBan, Voucher FROM SanPham WHERE MaSP = ?",
+        "SELECT GiaBan, Voucher FROM sanpham WHERE MaSP = ?",
         [id]
       );
       const current = sp[0];
@@ -200,7 +200,7 @@ export const updateSanPham = async (req: Request, res: Response) => {
       data.GiaSauGiam = GiaSauGiam;
     }
 
-    await db.query(`UPDATE SanPham SET ? WHERE MaSP = ?`, [data, id]);
+    await db.query(`UPDATE sanpham SET ? WHERE MaSP = ?`, [data, id]);
     res.json({ message: "Cập nhật sản phẩm thành công" });
   } catch (error) {
     console.error("❌ Lỗi updateSanPham:", error);
@@ -217,7 +217,7 @@ export const updateSanPham = async (req: Request, res: Response) => {
 export const deleteSanPham = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    await db.query(`DELETE FROM SanPham WHERE MaSP = ?`, [id]);
+    await db.query(`DELETE FROM sanpham WHERE MaSP = ?`, [id]);
     res.json({ message: "Đã xóa sản phẩm" });
   } catch (error) {
     console.error("❌ Lỗi deleteSanPham:", error);
