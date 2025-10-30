@@ -7,7 +7,7 @@ import { verifyAdmin } from "../middlewares/verifyAdmin";
 
 const router = express.Router();
 
-// ---- Cấu hình Multer ----
+// ---- Cấu hình thư mục upload ----
 const uploadDir = path.join(__dirname, "../../upload");
 
 // Tạo folder nếu chưa có
@@ -16,6 +16,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log("📂 Đã tạo thư mục upload tại:", uploadDir);
 }
 
+// ---- Cấu hình Multer ----
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -36,6 +37,12 @@ const upload = multer({
   },
 });
 
+// ---- Serve folder upload public ----
+// Đặt trong file server chính (app.ts / server.ts) khi khởi tạo app:
+// app.use("/uploads", express.static(path.join(__dirname, "../../upload")));
+// Nếu muốn gộp trong file này cũng được:
+router.use("/uploads", express.static(uploadDir));
+
 // ---- Endpoint upload ảnh sản phẩm (admin-only) ----
 router.post(
   "/imgproduct",
@@ -48,8 +55,11 @@ router.post(
         return res.status(400).json({ message: "Vui lòng chọn file ảnh!" });
       }
 
-      // Trả về URL đầy đủ để frontend dùng
-      const imageUrl = `/uploads/${req.file.filename}`;
+      // Lấy base URL từ env hoặc mặc định localhost
+      const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+
+      // Trả về URL đầy đủ
+      const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
       console.log("✅ Ảnh upload thành công:", imageUrl);
 
       res.status(200).json({ url: imageUrl });
